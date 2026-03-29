@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import AIChatPanel from './ai-chat-panel.jsx'
 
 const STORAGE_KEY = 'music-tracker-v1'
 const SECTIONS = ['Hook', 'Verse', 'Bridge', 'Outro', 'Intro', 'Other']
@@ -609,14 +610,15 @@ function ProjectDetail({ project, tasks, instruments, onAddTask, onUpdateTask, o
   const [sectionFilter, setSectionFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [manageOpen, setManageOpen] = useState(false)
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
 
   const filtered = sectionFilter ? tasks.filter((t) => t.section === sectionFilter) : tasks
   const byStatus = (s) => filtered.filter((t) => t.status === s)
 
   return (
-    <div>
+    <div style={{ transition: 'padding-right 0.3s ease', paddingRight: aiPanelOpen ? 432 : 0 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
         <button
           onClick={onBack}
           style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', color: '#94a3b8', cursor: 'pointer', borderRadius: 6, padding: '6px 12px', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, transition: 'all 0.15s' }}
@@ -629,6 +631,14 @@ function ProjectDetail({ project, tasks, instruments, onAddTask, onUpdateTask, o
           {project.name}
         </h2>
         <button
+          onClick={() => setAiPanelOpen((x) => !x)}
+          style={{ ...ghostBtnStyle, color: aiPanelOpen ? '#a78bfa' : '#64748b', borderColor: aiPanelOpen ? '#a78bfa55' : 'rgba(255,255,255,0.08)', background: aiPanelOpen ? 'rgba(167,139,250,0.1)' : 'transparent', transition: 'all 0.15s' }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#a78bfa55'; e.currentTarget.style.color = '#a78bfa' }}
+          onMouseLeave={(e) => { if (!aiPanelOpen) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#64748b' } }}
+        >
+          AI Assistant ✦
+        </button>
+        <button
           onClick={() => setManageOpen(true)}
           style={{ ...ghostBtnStyle, color: INST_COLOR, borderColor: `${INST_COLOR}33` }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${INST_COLOR}66` }}
@@ -640,6 +650,18 @@ function ProjectDetail({ project, tasks, instruments, onAddTask, onUpdateTask, o
           {project.status.toUpperCase()}
         </span>
       </div>
+
+      <AIChatPanel
+        projectId={project.id}
+        projectName={project.name}
+        tasks={tasks}
+        instruments={instruments}
+        onAddTask={onAddTask}
+        onUpdateTask={(taskId, changes) => onUpdateTask(taskId, changes)}
+        onUpdateInstruments={onUpdateInstruments}
+        isOpen={aiPanelOpen}
+        onClose={() => setAiPanelOpen(false)}
+      />
 
       {/* Sound palette */}
       <SoundPalette tasks={tasks} instruments={instruments} />
@@ -868,7 +890,7 @@ export default function MusicTracker() {
       const task = {
         id: `task_${Date.now()}`, projectId,
         title: fields.title, why: fields.why, section: fields.section,
-        sounds: [], reflection: '', status: 'todo', createdAt: Date.now(),
+        sounds: fields.sounds || [], reflection: '', status: 'todo', createdAt: Date.now(),
       }
       const projectTasks = [...(prev.tasks[projectId] || []), task]
       const next = { ...prev, tasks: { ...prev.tasks, [projectId]: projectTasks } }
